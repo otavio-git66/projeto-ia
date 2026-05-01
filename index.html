@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Otávio Gabriel — Visão Inteligente</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --bg: #080c10;
+      --surface: #0f1620;
+      --surface2: #162030;
+      --accent: #00e5ff;
+      --accent2: #ff4081;
+      --text: #e8f0fe;
+      --muted: #607080;
+      --border: rgba(0,229,255,.12);
+      --glow: 0 0 32px rgba(0,229,255,.25);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Grid lines background ── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 2.5rem 1.5rem 1.5rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-tag {
+      display: inline-block;
+      font-size: .65rem;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: .25rem .75rem;
+      border-radius: 2px;
+      margin-bottom: 1rem;
+      opacity: .8;
+    }
+
+    header h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 6vw, 3.8rem);
+      line-height: 1;
+      letter-spacing: -.03em;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: .8rem;
+      margin-top: .6rem;
+      letter-spacing: .05em;
+    }
+
+    /* ── Main layout ── */
+    main {
+      position: relative;
+      z-index: 10;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    /* ── Camera card ── */
+    .cam-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5), var(--glow);
+    }
+
+    .cam-card-header {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .cam-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+
+    .cam-label {
+      font-size: .7rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .cam-body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      padding: 1.5rem;
+      position: relative;
+    }
+
+    #webcam-container canvas {
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,229,255,.2);
+      max-width: 100%;
+    }
+
+    /* ── Placeholder before start ── */
+    .cam-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      color: var(--muted);
+    }
+
+    .cam-placeholder i {
+      font-size: 3.5rem;
+      color: var(--accent);
+      opacity: .4;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    .cam-placeholder span {
+      font-size: .75rem;
+      letter-spacing: .08em;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: .3; transform: scale(1); }
+      50%       { opacity: .6; transform: scale(1.06); }
+    }
+
+    /* ── Start button ── */
+    .btn-start {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: .6rem;
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid var(--accent);
+      border-radius: 6px;
+      padding: .75rem 2rem;
+      font-family: 'Syne', sans-serif;
+      font-size: .95rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      overflow: hidden;
+      transition: color .25s, box-shadow .25s;
+    }
+
+    .btn-start::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .3s ease;
+      z-index: 0;
+    }
+
+    .btn-start:hover::before { transform: scaleX(1); }
+    .btn-start:hover { color: #080c10; box-shadow: 0 0 24px rgba(0,229,255,.4); }
+
+    .btn-start span, .btn-start i { position: relative; z-index: 1; }
+
+    .btn-start:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ── Status badge ── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .7rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: .3rem .8rem;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--surface2);
+    }
+
+    .status-badge.active {
+      color: #1de9b6;
+      border-color: rgba(29,233,182,.3);
+    }
+
+    .status-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-badge.active .dot {
+      animation: blink 1s step-start infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /* ── Results card ── */
+    .results-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    }
+
+    .results-card-header {
+      padding: .85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .results-title {
+      font-family: 'Syne', sans-serif;
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .results-body {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      min-height: 120px;
+    }
+
+    /* ── Prediction row ── */
+    .prediction-row {}
+
+    .prediction-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: .4rem;
+    }
+
+    .prediction-name {
+      font-size: .75rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .prediction-pct {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--accent);
+      min-width: 3.5rem;
+      text-align: right;
+    }
+
+    .prediction-pct.hot { color: var(--accent2); }
+
+    /* ── Custom progress bar ── */
+    .prog-track {
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 100px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .prog-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--accent), #80d8ff);
+      width: 0%;
+      transition: width .35s cubic-bezier(.4,0,.2,1);
+      position: relative;
+    }
+
+    .prog-fill::after {
+      content: '';
+      position: absolute;
+      right: 0; top: 50%;
+      transform: translateY(-50%);
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #80d8ff;
+      box-shadow: 0 0 8px #80d8ff;
+    }
+
+    .prog-fill.hot {
+      background: linear-gradient(90deg, var(--accent2), #ff80ab);
+    }
+
+    .prog-fill.hot::after { background: #ff80ab; box-shadow: 0 0 8px #ff80ab; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: .6rem;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: .75rem;
+      letter-spacing: .08em;
+    }
+
+    .empty-state i { font-size: 1.8rem; opacity: .3; }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 1.5rem;
+      font-size: .65rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    footer span { color: var(--accent); }
+
+    /* ── Responsive tweaks ── */
+    @media (max-width: 576px) {
+      .results-body { padding: 1rem; }
+      .cam-body { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header>
+    <div class="header-tag">Machine Learning · TensorFlow.js</div>
+    <h1>Otávio Gabriel</h1>
+    <p>Classificação de imagens em tempo real via webcam</p>
+  </header>
+
+  <!-- ── MAIN ── -->
+  <main>
+    <div class="container" style="max-width:860px;">
+
+      <!-- Controls row -->
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <button class="btn-start" id="startBtn" onclick="init()">
+          <i class="bi bi-camera-video-fill"></i>
+          <span>Ativar Câmera</span>
+        </button>
+        <div class="status-badge" id="statusBadge">
+          <div class="dot"></div>
+          <span id="statusText">Aguardando</span>
+        </div>
+      </div>
+
+      <!-- Grid: webcam + results -->
+      <div class="row g-4">
+
+        <!-- Webcam -->
+        <div class="col-12 col-md-6">
+          <div class="cam-card h-100">
+            <div class="cam-card-header">
+              <div class="cam-dot" style="background:#ff5f57;"></div>
+              <div class="cam-dot" style="background:#febc2e;"></div>
+              <div class="cam-dot" style="background:#28c840;"></div>
+              <span class="cam-label">Live Feed</span>
+            </div>
+            <div class="cam-body" id="webcam-container">
+              <div class="cam-placeholder" id="camPlaceholder">
+                <i class="bi bi-camera-video"></i>
+                <span>Câmera inativa</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="col-12 col-md-6">
+          <div class="results-card h-100">
+            <div class="results-card-header">
+              <span class="results-title">Previsões</span>
+              <i class="bi bi-activity" style="color:var(--accent); font-size:.9rem;"></i>
+            </div>
+            <div class="results-body" id="label-container">
+              <div class="empty-state">
+                <i class="bi bi-bar-chart-line"></i>
+                <span>Inicie a câmera para ver os resultados</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /row -->
+    </div><!-- /container -->
+  </main>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    Desenvolvido por <span>Otávio Gabriel</span> · Powered by Teachable Machine &amp; TensorFlow.js
+  </footer>
+
+  <!-- ── SCRIPTS ── -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    const URL = "https://teachablemachine.withgoogle.com/models/2l0ziqMvq/";
+    let model, webcam, maxPredictions;
+    let predictionRows = [];   // { fill, pct } per class
+
+    async function init() {
+      const btn = document.getElementById("startBtn");
+      const badge = document.getElementById("statusBadge");
+      const statusText = document.getElementById("statusText");
+
+      // UI feedback – loading
+      btn.disabled = true;
+      btn.querySelector("span").textContent = "Carregando...";
+      statusText.textContent = "Carregando modelo";
+
+      try {
+        model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+        maxPredictions = model.getTotalClasses();
+
+        const flip = true;
+        webcam = new tmImage.Webcam(200, 200, flip);
+        await webcam.setup();
+        await webcam.play();
+
+        // Swap placeholder for canvas
+        const container = document.getElementById("webcam-container");
+        container.innerHTML = "";
+        container.style.padding = "1.25rem";
+        container.appendChild(webcam.canvas);
+
+        // Build prediction rows
+        buildPredictionUI();
+
+        // Status → active
+        badge.classList.add("active");
+        statusText.textContent = "Analisando";
+        btn.querySelector("span").textContent = "Câmera ativa";
+
+        window.requestAnimationFrame(loop);
+      } catch (err) {
+        console.error(err);
+        btn.disabled = false;
+        btn.querySelector("span").textContent = "Tentar novamente";
+        statusText.textContent = "Erro";
+      }
+    }
+
+    function buildPredictionUI() {
+      const container = document.getElementById("label-container");
+      container.innerHTML = "";
+      predictionRows = [];
+
+      for (let i = 0; i < maxPredictions; i++) {
+        const row = document.createElement("div");
+        row.className = "prediction-row";
+
+        row.innerHTML = `
+          <div class="prediction-meta">
+            <span class="prediction-name" id="pname-${i}">Classe ${i + 1}</span>
+            <span class="prediction-pct" id="ppct-${i}">0%</span>
+          </div>
+          <div class="prog-track">
+            <div class="prog-fill" id="pfill-${i}"></div>
+          </div>
+        `;
+
+        container.appendChild(row);
+        predictionRows.push({
+          name: document.getElementById(`pname-${i}`),
+          fill: document.getElementById(`pfill-${i}`),
+          pct:  document.getElementById(`ppct-${i}`)
+        });
+      }
+    }
+
+    async function loop() {
+      webcam.update();
+      await predict();
+      window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+      const prediction = await model.predict(webcam.canvas);
+
+      // Find the top class index
+      let topIdx = 0;
+      prediction.forEach((p, i) => {
+        if (p.probability > prediction[topIdx].probability) topIdx = i;
+      });
+
+      for (let i = 0; i < maxPredictions; i++) {
+        const prob = prediction[i].probability;
+        const pct  = Math.round(prob * 100);
+        const isTop = i === topIdx;
+
+        predictionRows[i].name.textContent = prediction[i].className;
+        predictionRows[i].pct.textContent  = pct + "%";
+        predictionRows[i].fill.style.width  = pct + "%";
+
+        // Highlight top prediction
+        predictionRows[i].pct.classList.toggle("hot", isTop);
+        predictionRows[i].fill.classList.toggle("hot", isTop);
+      }
+    }
+  </script>
+
+</body>
+</html>
